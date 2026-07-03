@@ -372,7 +372,6 @@ details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(-
   <aside id="sidebar">
     <div class="side-tools">
       <input class="search" id="search" type="text" placeholder="Soru ara…">
-      <div class="chips" id="topicChips"></div>
     </div>
     <div class="qlist" id="qlist"></div>
   </aside>
@@ -554,7 +553,6 @@ cm.on("change", ()=>{
 
 /* ============ FİLTRELER & LİSTE ============ */
 let cur = null;
-let activeTopic = "Tümü";
 let searchTerm = "";
 
 function topicsInUse(){
@@ -562,21 +560,10 @@ function topicsInUse(){
   store.custom.forEach(q=>{ if(!t.includes(q.topic)) t.push(q.topic); });
   return t;
 }
-function renderChips(){
-  const wrap = $("#topicChips"); wrap.innerHTML = "";
-  ["Tümü", ...topicsInUse()].forEach(t=>{
-    const b = document.createElement("button");
-    b.className = "chip" + (t===activeTopic ? " on" : "");
-    b.textContent = t;
-    b.onclick = ()=>{ activeTopic = t; renderChips(); renderList(); };
-    wrap.appendChild(b);
-  });
-}
 function renderList(){
   const list = $("#qlist"); list.innerHTML = "";
   const term = searchTerm.trim().toLowerCase();
   const qs = allQuestions().filter(q =>
-    (activeTopic==="Tümü" || q.topic===activeTopic) &&
     (!term || q.title.toLowerCase().includes(term))
   );
   if(!qs.length){
@@ -818,7 +805,7 @@ $("#mSave").onclick = ()=>{
   });
   saveStore();
   $("#modalOverlay").classList.remove("open");
-  renderChips(); renderList(); renderRegister();
+  renderList(); renderRegister();
   toast("Soru eklendi");
 };
 $("#btnDelete").onclick = ()=>{
@@ -829,7 +816,7 @@ $("#btnDelete").onclick = ()=>{
   saveStore();
   cur = null;
   $("#qview").style.display="none"; $("#emptyMain").style.display="flex";
-  renderChips(); renderList(); renderRegister();
+  renderList(); renderRegister();
   toast("Soru silindi");
 };
 
@@ -862,7 +849,7 @@ $("#importFile").onchange = e=>{
       const ids = new Set(store.custom.map(q=>q.id));
       (data.custom || []).forEach(q=>{ if(q && q.id && !ids.has(q.id)) store.custom.push(q); });
       saveStore();
-      renderChips(); renderList(); renderRegister();
+      renderList(); renderRegister();
       if(cur) selectQ(cur.id);
       toast("Yedek yüklendi");
     }catch(err){ toast("Geçersiz yedek dosyası"); }
@@ -877,7 +864,7 @@ $("#sideToggle").onclick = ()=>$("#sidebar").classList.toggle("open");
 $("#btnTest").onclick = ()=>runTests();
 
 /* ============ BAŞLAT ============ */
-renderChips(); renderList(); renderRegister();
+renderList(); renderRegister();
 const firstUnsolved = allQuestions().find(q=>!prog(q.id).solved) || allQuestions()[0];
 if(firstUnsolved) selectQ(firstUnsolved.id);
 resolveCompiler();
