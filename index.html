@@ -178,7 +178,7 @@ details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(-
 /* ---------- Editor ---------- */
 .ed-frame{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
 .CodeMirror{
-  height:auto;min-height:260px;
+  height:auto;min-height:260px;max-height:55vh;
   font-family:var(--mono);font-size:13.5px;line-height:1.6;
   background:var(--panel);color:var(--text);
 }
@@ -199,9 +199,19 @@ details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(-
 .cm-s-pratik .cm-meta{color:#C792EA}
 .cm-s-pratik .cm-atom{color:#FFB454}
 .CodeMirror-matchingbracket{color:var(--acc)!important;text-decoration:underline}
-/* Otomatik yükseklikte native YATAY kaydırma çubuğu (boşken bile) sızıyor —
-   sadece yatayı gizle; dikey büyüme/kaydırma dokunulmaz kalır (satır kırpılmaz). */
-.CodeMirror-scroll{overflow-x:hidden!important}
+/* Kod uzayınca editör max-height'te durup dikey kaysın. Yatay çubuk gizli;
+   dikey çubuk temaya uygun ince/şık. (CM'in negatif-margin gizleme hilesini
+   kapatıyoruz ki dikey çubuk sınır içinde görünür olsun.) */
+.CodeMirror-scroll{
+  max-height:55vh;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  margin-right:0!important;margin-bottom:0!important;padding-bottom:0!important;
+}
+.CodeMirror-scroll::-webkit-scrollbar{width:10px;height:0}
+.CodeMirror-scroll::-webkit-scrollbar-track{background:transparent}
+.CodeMirror-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:2px solid var(--panel)}
+.CodeMirror-scroll::-webkit-scrollbar-thumb:hover{background:var(--acc-dim)}
 
 .run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .run-row .spacer{flex:1}
