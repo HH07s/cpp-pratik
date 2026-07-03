@@ -199,6 +199,9 @@ details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(-
 .cm-s-pratik .cm-meta{color:#C792EA}
 .cm-s-pratik .cm-atom{color:#FFB454}
 .CodeMirror-matchingbracket{color:var(--acc)!important;text-decoration:underline}
+/* Otomatik yükseklikte native YATAY kaydırma çubuğu (boşken bile) sızıyor —
+   sadece yatayı gizle; dikey büyüme/kaydırma dokunulmaz kalır (satır kırpılmaz). */
+.CodeMirror-scroll{overflow-x:hidden!important}
 
 .run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .run-row .spacer{flex:1}
