@@ -247,9 +247,18 @@ details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(-
 
 /* ---------- Canlı terminal ---------- */
 .term-box{margin-bottom:16px}
-#term,#cTerm{height:320px;padding:8px 4px 8px 10px;background:#0A0F1C}
+#term,#cTerm{height:320px;padding:8px 14px 8px 10px;background:#0A0F1C;position:relative}
 #term .xterm,#cTerm .xterm{height:100%}
 #term .xterm-viewport,#cTerm .xterm-viewport{background:transparent!important}
+/* xterm'in işlevsiz native scroll track'ini gizle; kaydırma özel çubuk + tekerlekle */
+#term .xterm-viewport::-webkit-scrollbar,#cTerm .xterm-viewport::-webkit-scrollbar{width:0;height:0}
+/* Özel sürüklenebilir dikey scrollbar (xterm scroll API'sine bağlı) */
+.term-scrollbar{position:absolute;top:6px;right:4px;bottom:6px;width:8px;z-index:6;opacity:0;transition:opacity .2s}
+.term-scrollbar.active{opacity:.8}
+.term-scrollbar:hover{opacity:1}
+.term-scrollbar .thumb{position:absolute;left:0;width:8px;border-radius:4px;background:var(--line);cursor:grab}
+.term-scrollbar .thumb:hover{background:var(--acc-dim)}
+.term-scrollbar .thumb:active{background:var(--acc-dim);cursor:grabbing}
 
 /* ---------- Mod sekmeleri (üst menü) ---------- */
 .mode-nav{display:flex;gap:4px}
@@ -885,6 +894,43 @@ resolveCompiler();
    Üretim     : "wss://cpp-backend.example.com" (GitHub Pages https olduğundan wss şart) */
 const BACKEND_WS_URL = "wss://cpp-pratik.onrender.com";
 
+/* xterm terminaline özel, sürüklenebilir dikey scrollbar. xterm native viewport
+   scroll'u sunmadığı için (kendi tekerlek mekanizmasını kullanır) scroll API'sine
+   bağlı bir çubuk çizip senkronluyoruz. */
+function setupTermScrollbar(container, term){
+  const bar = document.createElement("div"); bar.className = "term-scrollbar";
+  const thumb = document.createElement("div"); thumb.className = "thumb";
+  bar.appendChild(thumb); container.appendChild(bar);
+  const metrics = ()=>{
+    const b = term.buffer.active;
+    const total = b.baseY + term.rows;
+    const trackH = bar.clientHeight;
+    const thumbH = Math.max(24, Math.round(trackH * term.rows / total));
+    return { baseY: b.baseY, viewportY: b.viewportY, trackH, thumbH, maxTop: trackH - thumbH };
+  };
+  const update = ()=>{
+    const m = metrics();
+    if(m.baseY <= 0){ bar.classList.remove("active"); return; }
+    bar.classList.add("active");
+    thumb.style.height = m.thumbH + "px";
+    thumb.style.top = Math.round((m.viewportY / m.baseY) * m.maxTop) + "px";
+  };
+  term.onScroll(update); term.onRender(update); term.onResize(update);
+  let dragging = false, startY = 0, startVY = 0;
+  thumb.addEventListener("mousedown", e=>{
+    dragging = true; startY = e.clientY; startVY = term.buffer.active.viewportY;
+    document.body.style.userSelect = "none"; e.preventDefault();
+  });
+  window.addEventListener("mousemove", e=>{
+    if(!dragging) return;
+    const m = metrics();
+    const dLines = m.maxTop > 0 ? ((e.clientY - startY) / m.maxTop) * m.baseY : 0;
+    term.scrollToLine(Math.max(0, Math.min(m.baseY, Math.round(startVY + dLines))));
+  });
+  window.addEventListener("mouseup", ()=>{ if(dragging){ dragging = false; document.body.style.userSelect = ""; } });
+  update();
+}
+
 /* Tek bir canlı-çalıştırma motoru. Hem "Soru Çöz" hem "Compiler" modu için ayrı
    birer örnek oluşturulur; her biri kendi editöründen kod alır, kendi xterm
    terminalinde çalışır ve kendi WebSocket'ini yönetir. */
@@ -921,6 +967,7 @@ function makeLiveRunner(opts){
     term.loadAddon(fit);
     term.open($(termSel));
     fit.fit();
+    setupTermScrollbar($(termSel), term);
     window.addEventListener("resize", ()=>{ if(fit) try{ fit.fit(); }catch(e){} });
     // Kullanıcının yazdığı her şey (Enter, Ctrl+C dahil) doğrudan sürecin PTY'sine gider.
     term.onData(d=>{ if(running && ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:"input", data:d})); });
