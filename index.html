@@ -958,12 +958,18 @@ function makeLiveRunner(opts){
     setStatus("bağlanıyor…");
     const doRun = ()=>ws.send(JSON.stringify({type:"run", code:getCode(), cols:term.cols, rows:term.rows}));
     if(ws && ws.readyState === WebSocket.OPEN){ doRun(); return; }
+    // Yeni bağlantı — ücretsiz sunucu uykudaysa el sıkışma 30-50 sn sürebilir.
+    term.write("\x1b[90mSunucuya bağlanılıyor…\x1b[0m\r\n");
+    let wokeTimer = setTimeout(()=>{
+      term.write("\x1b[33mSunucu uykudan uyanıyor olabilir — ilk çalıştırma ~30-50 sn sürebilir, lütfen bekleyin…\x1b[0m\r\n");
+    }, 4000);
     ws = new WebSocket(BACKEND_WS_URL);
-    ws.onopen = doRun;
+    ws.onopen = ()=>{ clearTimeout(wokeTimer); doRun(); };
     ws.onmessage = ev=>{ let m; try{ m = JSON.parse(ev.data); }catch(e){ return; } handle(m); };
     ws.onclose = ()=>{
+      clearTimeout(wokeTimer);
       if(running){
-        term.write("\r\n\x1b[31m[bağlantı kesildi]\x1b[0m\r\n");
+        term.write("\r\n\x1b[31m[bağlantı kesildi — sunucu uyanmadıysa birkaç saniye sonra tekrar Çalıştır'a bas]\x1b[0m\r\n");
         setStatus('<span class="status-err">bağlantı kesildi</span>');
         setUI(false);
       }
