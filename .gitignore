@@ -1,0 +1,6 @@
+backend/node_modules/
+*.log
+.DS_Store
+
+# Geliştirme el notu — yerelde kalsın, herkese açık repoda yayınlanmasın
+DEVAM-NOTU.md

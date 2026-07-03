@@ -1,0 +1,2 @@
+# Depoda tüm metin dosyaları LF ile saklansın (backend Linux'ta çalışıyor).
+* text=auto eol=lf

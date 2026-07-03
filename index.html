@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C++ Pratik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+<style>
+:root{
+  --bg:#0C1120;
+  --panel:#131A2C;
+  --panel2:#1A2340;
+  --line:#25304F;
+  --text:#E9EEF8;
+  --mut:#8C97B2;
+  --acc:#53DAE2;
+  --acc-dim:#2A6E74;
+  --ok:#5EE39A;
+  --err:#FF6B7A;
+  --warn:#FFB454;
+  --radius:8px;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.55;
+  display:flex;
+  flex-direction:column;
+}
+button{font-family:var(--sans);cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* ---------- Header ---------- */
+header{
+  display:flex;align-items:center;gap:20px;
+  padding:12px 20px;
+  border-bottom:1px solid var(--line);
+  background:var(--panel);
+  flex-wrap:wrap;
+}
+.logo{font-weight:700;font-size:17px;letter-spacing:-.01em;white-space:nowrap}
+.logo span{color:var(--acc)}
+
+/* signature: progress register */
+.register{display:flex;align-items:center;gap:10px;flex:1;min-width:220px}
+.reg-cells{display:flex;flex-wrap:wrap;gap:3px}
+.reg-cell{
+  width:11px;height:11px;border-radius:2px;
+  background:var(--panel2);border:1px solid var(--line);
+  transition:background .25s,border-color .25s;
+}
+.reg-cell.on{background:var(--acc);border-color:var(--acc)}
+.reg-cell.cur{border-color:var(--acc)}
+.reg-count{font-family:var(--mono);font-size:12px;color:var(--mut);white-space:nowrap}
+.reg-count b{color:var(--text);font-weight:600}
+
+.hdr-actions{display:flex;gap:8px}
+.btn{
+  border:1px solid var(--line);background:var(--panel2);color:var(--text);
+  border-radius:var(--radius);padding:7px 14px;font-size:13.5px;font-weight:500;
+  transition:border-color .15s,background .15s;
+}
+.btn:hover{border-color:var(--acc-dim)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#06232B;font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+
+/* ---------- Layout ---------- */
+.wrap{display:flex;flex:1;min-height:0}
+aside{
+  width:290px;min-width:290px;
+  border-right:1px solid var(--line);
+  background:var(--panel);
+  display:flex;flex-direction:column;
+  min-height:0;
+}
+main{flex:1;overflow-y:auto;min-width:0;padding:24px 28px 60px}
+
+/* ---------- Sidebar ---------- */
+.side-tools{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+.search{
+  width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+  color:var(--text);padding:8px 11px;font-size:13.5px;font-family:var(--sans);
+}
+.search::placeholder{color:var(--mut)}
+.search:focus{outline:none;border-color:var(--acc-dim)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{
+  font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+  border:1px solid var(--line);background:transparent;color:var(--mut);
+  border-radius:20px;padding:4px 10px;transition:all .15s;
+}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#06232B;font-weight:600}
+
+.qlist{flex:1;overflow-y:auto;padding:8px}
+.qitem{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 10px;border-radius:var(--radius);
+  cursor:pointer;border:1px solid transparent;
+  transition:background .12s;
+}
+.qitem:hover{background:var(--panel2)}
+.qitem.sel{background:var(--panel2);border-color:var(--line)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dot.kolay{background:var(--ok)}
+.dot.orta{background:var(--warn)}
+.dot.zor{background:var(--err)}
+.qname{flex:1;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qitem .tick{font-family:var(--mono);color:var(--acc);font-size:12px;flex:none;width:14px;text-align:center}
+.qitem .custom-mark{font-family:var(--mono);font-size:10px;color:var(--mut);flex:none}
+.empty-list{padding:24px 16px;color:var(--mut);font-size:13px;text-align:center}
+
+/* ---------- Question view ---------- */
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--acc);margin-bottom:6px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+}
+.eyebrow .sep{color:var(--line)}
+.eyebrow .d-kolay{color:var(--ok)}
+.eyebrow .d-orta{color:var(--warn)}
+.eyebrow .d-zor{color:var(--err)}
+h1{font-size:24px;font-weight:700;letter-spacing:-.015em;margin-bottom:12px}
+.solved-badge{
+  font-family:var(--mono);font-size:11px;color:#06232B;background:var(--acc);
+  border-radius:4px;padding:2px 8px;vertical-align:3px;margin-left:10px;font-weight:600;
+}
+.desc{color:var(--text);max-width:760px;margin-bottom:16px}
+.desc code{
+  font-family:var(--mono);font-size:.88em;background:var(--panel2);
+  border:1px solid var(--line);border-radius:4px;padding:1px 5px;
+}
+.desc p+p{margin-top:8px}
+
+.example{
+  max-width:760px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:14px;overflow:hidden;
+}
+.example .ex-head{
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--mut);
+  padding:8px 14px;border-bottom:1px solid var(--line);
+}
+.ex-grid{display:grid;grid-template-columns:1fr 1fr}
+.ex-col{padding:10px 14px;min-width:0}
+.ex-col+.ex-col{border-left:1px solid var(--line)}
+.ex-col .lbl{font-family:var(--mono);font-size:10.5px;color:var(--mut);margin-bottom:4px}
+.ex-col pre{
+  font-family:var(--mono);font-size:12.5px;color:var(--text);
+  white-space:pre-wrap;word-break:break-word;
+}
+.ex-note{padding:7px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+
+details.hint{max-width:760px;margin-bottom:18px}
+details.hint summary{
+  cursor:pointer;font-size:13px;color:var(--mut);user-select:none;
+  font-family:var(--mono);letter-spacing:.03em;
+}
+details.hint summary:hover{color:var(--acc)}
+details.hint .hint-body{
+  margin-top:8px;padding:10px 14px;background:var(--panel);
+  border:1px solid var(--line);border-left:2px solid var(--warn);
+  border-radius:var(--radius);font-size:13.5px;color:var(--text);
+}
+details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(--warn)}
+
+/* ---------- Editor ---------- */
+.ed-frame{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+.CodeMirror{
+  height:auto;min-height:260px;
+  font-family:var(--mono);font-size:13.5px;line-height:1.6;
+  background:var(--panel);color:var(--text);
+}
+.CodeMirror-gutters{background:var(--panel);border-right:1px solid var(--line)}
+.CodeMirror-linenumber{color:#4A5673;font-size:12px}
+.CodeMirror-cursor{border-left:2px solid var(--acc)}
+.CodeMirror-selected{background:#24406455!important}
+.CodeMirror-focused .CodeMirror-selected{background:#24406488!important}
+.cm-s-pratik .cm-keyword{color:#7EB8FF}
+.cm-s-pratik .cm-def{color:#E9EEF8}
+.cm-s-pratik .cm-variable{color:#E9EEF8}
+.cm-s-pratik .cm-variable-2{color:#B7C4E4}
+.cm-s-pratik .cm-type,.cm-s-pratik .cm-builtin{color:#53DAE2}
+.cm-s-pratik .cm-number{color:#FFB454}
+.cm-s-pratik .cm-string{color:#5EE39A}
+.cm-s-pratik .cm-comment{color:#5E6B8C;font-style:italic}
+.cm-s-pratik .cm-operator{color:#FF9BC2}
+.cm-s-pratik .cm-meta{color:#C792EA}
+.cm-s-pratik .cm-atom{color:#FFB454}
+.CodeMirror-matchingbracket{color:var(--acc)!important;text-decoration:underline}
+/* Otomatik yükseklik + satır kaydırma ile iç kaydırma hiç gerekmiyor —
+   CodeMirror'un native kaydırma çubuğu hilesini kapatıp çirkin barı yok et. */
+.CodeMirror-hscrollbar,.CodeMirror-vscrollbar,.CodeMirror-scrollbar-filler,.CodeMirror-gutter-filler{display:none!important}
+.CodeMirror-scroll{overflow:hidden!important;margin:0!important;padding-bottom:0!important}
+
+.run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.run-row .spacer{flex:1}
+.kbd-hint{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.spin{
+  width:14px;height:14px;border:2px solid #06232B44;border-top-color:#06232B;
+  border-radius:50%;display:inline-block;vertical-align:-2px;margin-right:6px;
+  animation:sp .7s linear infinite;
+}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- I/O ---------- */
+.io-grid{display:grid;grid-template-columns:280px 1fr;gap:12px;align-items:start;margin-bottom:16px}
+.io-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.io-head{
+  font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--mut);
+  padding:7px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+}
+.io-head .status-ok{color:var(--ok)}
+.io-head .status-err{color:var(--err)}
+#stdinBox{
+  width:100%;border:none;background:transparent;color:var(--text);
+  font-family:var(--mono);font-size:12.5px;padding:10px 12px;resize:vertical;
+  min-height:90px;
+}
+#stdinBox:focus{outline:none}
+#outBox{
+  font-family:var(--mono);font-size:12.5px;padding:10px 12px;
+  white-space:pre-wrap;word-break:break-word;min-height:90px;color:var(--text);
+}
+#outBox.err{color:var(--err)}
+#outBox .muted{color:var(--mut)}
+
+/* ---------- Canlı terminal ---------- */
+.term-box{margin-bottom:16px}
+#term,#cTerm{height:320px;padding:8px 4px 8px 10px;background:#0A0F1C}
+#term .xterm,#cTerm .xterm{height:100%}
+#term .xterm-viewport,#cTerm .xterm-viewport{background:transparent!important}
+
+/* ---------- Mod sekmeleri (üst menü) ---------- */
+.mode-nav{display:flex;gap:4px}
+.mode-tab{
+  border:1px solid var(--line);background:var(--panel2);color:var(--mut);
+  border-radius:var(--radius);padding:7px 16px;font-size:13.5px;font-weight:500;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.mode-tab:hover{color:var(--text)}
+.mode-tab.on{background:var(--acc);border-color:var(--acc);color:#06232B;font-weight:600}
+
+/* ---------- Tests ---------- */
+.tests{max-width:900px}
+.trow{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:10px 14px;margin-bottom:8px;
+}
+.trow .t-icon{font-family:var(--mono);font-size:13px;width:18px;flex:none;padding-top:1px}
+.trow.pass .t-icon{color:var(--ok)}
+.trow.fail .t-icon{color:var(--err)}
+.trow.wait .t-icon{color:var(--mut)}
+.t-body{flex:1;min-width:0}
+.t-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.t-detail{font-family:var(--mono);font-size:12px;color:var(--mut);white-space:pre-wrap;word-break:break-word}
+.t-detail b{color:var(--text);font-weight:500}
+.all-pass{
+  border:1px solid var(--acc);background:#53dae214;border-radius:var(--radius);
+  padding:12px 16px;color:var(--acc);font-weight:600;font-size:14px;margin-bottom:8px;
+}
+
+/* ---------- Empty state ---------- */
+.empty-main{
+  height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--mut);gap:10px;text-align:center;padding:40px;
+}
+.empty-main .big{font-family:var(--mono);font-size:34px;color:var(--line)}
+
+/* ---------- Modal ---------- */
+.overlay{
+  position:fixed;inset:0;background:#05091499;backdrop-filter:blur(2px);
+  display:none;align-items:flex-start;justify-content:center;z-index:50;
+  overflow-y:auto;padding:40px 16px;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  width:640px;max-width:100%;padding:22px 24px;
+}
+.modal h2{font-size:18px;margin-bottom:16px}
+.f-row{margin-bottom:12px}
+.f-row label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:5px;font-family:var(--mono);letter-spacing:.03em}
+.f-row input[type=text],.f-row select,.f-row textarea{
+  width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+  color:var(--text);padding:8px 11px;font-size:13.5px;font-family:var(--sans);
+}
+.f-row textarea{font-family:var(--mono);font-size:12.5px;resize:vertical}
+.f-row input:focus,.f-row select:focus,.f-row textarea:focus{outline:none;border-color:var(--acc-dim)}
+.f-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tcase{
+  border:1px solid var(--line);border-radius:var(--radius);padding:10px;margin-bottom:8px;
+  display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;align-items:start;
+}
+.tcase textarea{
+  width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 8px;min-height:52px;resize:vertical;
+}
+.tcase .del-t{
+  border:none;background:transparent;color:var(--mut);font-size:16px;padding:4px;border-radius:6px;
+}
+.tcase .del-t:hover{color:var(--err)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.danger-zone{margin-top:14px}
+.btn.danger{color:var(--err);border-color:#5c2a33}
+.btn.danger:hover{border-color:var(--err)}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:10px 18px;font-size:13.5px;opacity:0;pointer-events:none;
+  transition:opacity .25s,transform .25s;z-index:99;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- Mobile ---------- */
+#sideToggle{display:none}
+@media(max-width:900px){
+  #sideToggle{display:inline-block}
+  aside{
+    position:fixed;top:0;left:0;bottom:0;z-index:40;
+    transform:translateX(-100%);transition:transform .25s;
+    box-shadow:0 0 40px #00000088;
+  }
+  aside.open{transform:translateX(0)}
+  main{padding:18px 16px 60px}
+  .io-grid{grid-template-columns:1fr}
+  .ex-grid{grid-template-columns:1fr}
+  .ex-col+.ex-col{border-left:none;border-top:1px solid var(--line)}
+  .register{order:3;flex-basis:100%}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="btn sm" id="sideToggle" aria-label="Soru listesini aç">☰</button>
+  <div class="logo">C++ <span>Pratik</span></div>
+  <nav class="mode-nav" id="modeNav" aria-label="Mod seçimi">
+    <button class="mode-tab on" id="modeCompiler">Compiler</button>
+    <button class="mode-tab" id="modeQuestion">Soru Çöz</button>
+  </nav>
+  <div class="register" id="register" aria-label="İlerleme">
+    <div class="reg-cells" id="regCells"></div>
+    <div class="reg-count" id="regCount"></div>
+  </div>
+  <div class="hdr-actions">
+    <button class="btn" id="btnAdd">+ Soru Ekle</button>
+    <button class="btn ghost" id="btnExport" title="Tüm verini JSON olarak indir">Dışa Aktar</button>
+    <button class="btn ghost" id="btnImport" title="Yedekten geri yükle">İçe Aktar</button>
+    <input type="file" id="importFile" accept=".json" hidden>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside id="sidebar">
+    <div class="side-tools">
+      <input class="search" id="search" type="text" placeholder="Soru ara…">
+      <div class="chips" id="topicChips"></div>
+    </div>
+    <div class="qlist" id="qlist"></div>
+  </aside>
+
+  <main id="main">
+    <div class="empty-main" id="emptyMain">
+      <div class="big">{ }</div>
+      <div>Soldan bir soru seç ve kodlamaya başla.</div>
+    </div>
+
+    <div id="qview" style="display:none">
+      <div class="eyebrow" id="qMeta"></div>
+      <h1><span id="qTitle"></span><span class="solved-badge" id="qSolved" style="display:none">ÇÖZÜLDÜ</span></h1>
+      <div class="desc" id="qDesc"></div>
+
+      <div class="example" id="qExample" style="display:none">
+        <div class="ex-head">ÖRNEK</div>
+        <div class="ex-grid">
+          <div class="ex-col"><div class="lbl">Girdi (stdin)</div><pre id="exIn"></pre></div>
+          <div class="ex-col"><div class="lbl">Beklenen Çıktı</div><pre id="exOut"></pre></div>
+        </div>
+        <div class="ex-note">Girdi <b>cin</b> ile okunur · ekrana yalnızca istenen çıktı yazdırılır (ek metin yazma).</div>
+      </div>
+
+      <details class="hint" id="qHintWrap" style="display:none">
+        <summary>▸ İpucu göster</summary>
+        <div class="hint-body" id="qHint"></div>
+      </details>
+
+      <div class="ed-frame"><textarea id="editor"></textarea></div>
+
+      <div class="run-row">
+        <button class="btn primary" id="btnLive">Canlı Çalıştır</button>
+        <button class="btn ghost sm danger" id="btnLiveStop" style="display:none">■ Durdur</button>
+        <button class="btn" id="btnTest">✓ Testleri Çalıştır</button>
+        <button class="btn ghost sm" id="btnReset">Sıfırla</button>
+        <button class="btn ghost sm danger" id="btnDelete" style="display:none">Soruyu Sil</button>
+        <div class="spacer"></div>
+        <span class="kbd-hint" id="liveNote" style="display:none">Canlı mod için backend adresi tanımlı değil</span>
+        <span class="kbd-hint">Ctrl+Enter → canlı çalıştır</span>
+      </div>
+
+      <div class="io-box term-box" id="termWrap" style="display:none">
+        <div class="io-head"><span>TERMİNAL</span><span id="termStatus"></span></div>
+        <div id="term"></div>
+      </div>
+
+      <div class="tests" id="testResults"></div>
+    </div>
+
+    <div id="compilerView" style="display:none">
+      <div class="eyebrow">SERBEST DERLEYİCİ · TERMİNAL</div>
+      <h1>Compiler</h1>
+      <div class="desc" style="margin-bottom:16px">İstediğiniz C++ kodunu yazınız, <b>Çalıştır</b>'a basarak terminalde çalıştırabilirsiniz.</div>
+      <div class="ed-frame"><textarea id="cEditor"></textarea></div>
+      <div class="run-row">
+        <button class="btn primary" id="cBtnRun">Çalıştır</button>
+        <button class="btn ghost sm danger" id="cBtnStop" style="display:none">■ Durdur</button>
+        <button class="btn ghost sm" id="cBtnReset">Sıfırla</button>
+        <div class="spacer"></div>
+        <span class="kbd-hint" id="cLiveNote" style="display:none">Canlı mod için backend adresi tanımlı değil</span>
+        <span class="kbd-hint">Ctrl+Enter → çalıştır</span>
+      </div>
+      <div class="io-box term-box" id="cTermWrap" style="display:none">
+        <div class="io-head"><span>TERMİNAL</span><span id="cTermStatus"></span></div>
+        <div id="cTerm"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Soru ekleme modalı -->
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>Yeni Soru Ekle</h2>
+    <div class="f-row">
+      <label>BAŞLIK</label>
+      <input type="text" id="mTitle" placeholder="ör. Dizide En Büyük Eleman">
+    </div>
+    <div class="f-2col">
+      <div class="f-row">
+        <label>KONU</label>
+        <select id="mTopic"></select>
+      </div>
+      <div class="f-row">
+        <label>ZORLUK</label>
+        <select id="mDiff">
+          <option value="kolay">Kolay</option>
+          <option value="orta">Orta</option>
+          <option value="zor">Zor</option>
+        </select>
+      </div>
+    </div>
+    <div class="f-row">
+      <label>AÇIKLAMA</label>
+      <textarea id="mDesc" rows="4" placeholder="Sorunun tanımı…"></textarea>
+    </div>
+    <div class="f-row">
+      <label>BAŞLANGIÇ KODU (opsiyonel)</label>
+      <textarea id="mStarter" rows="5" spellcheck="false"></textarea>
+    </div>
+    <div class="f-row">
+      <label>İPUCU (opsiyonel)</label>
+      <input type="text" id="mHint">
+    </div>
+    <div class="f-row">
+      <label>TEST DURUMLARI (opsiyonel — sol: stdin, sağ: beklenen çıktı)</label>
+      <div id="mTests"></div>
+      <button class="btn sm" id="mAddTest">+ Test Ekle</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="mCancel">Vazgeç</button>
+      <button class="btn primary" id="mSave">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script>
+/* ============ HAZIR SORU SETİ ============ */
+const STARTER = `#include <iostream>
+using namespace std;
+
+int main() {
+    
+    return 0;
+}`;
+
+const BASE = [];
+
+const TOPICS = ["Çıktı","Değişkenler","Koşullar","Döngüler","Bit İşlemleri"];
+</script>
+<script>
+/* ============ DURUM & KALICILIK ============ */
+const LS_KEY = "cppPratikV1";
+let store = loadStore();
+function loadStore(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_KEY));
+    if(s && typeof s === "object") return {progress:s.progress||{}, custom:Array.isArray(s.custom)?s.custom:[], compilerCode:typeof s.compilerCode==="string"?s.compilerCode:null};
+  }catch(e){}
+  return {progress:{}, custom:[], compilerCode:null};
+}
+function saveStore(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }catch(e){ toast("Kayıt başarısız — tarayıcı depolaması kapalı olabilir"); } }
+
+function allQuestions(){ return [...BASE, ...store.custom]; }
+function prog(id){ return store.progress[id] || {}; }
+function setProg(id, patch){ store.progress[id] = {...prog(id), ...patch}; saveStore(); }
+
+/* ============ YARDIMCILAR ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").replace(/\r/g,"").split("\n").map(l=>l.replace(/\s+$/,"")).join("\n").replace(/\n+$/,"");
+let toastTimer;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ============ EDİTÖR ============ */
+const cm = CodeMirror.fromTextArea($("#editor"), {
+  mode:"text/x-c++src", theme:"pratik", lineNumbers:true, indentUnit:4,
+  matchBrackets:true, autoCloseBrackets:true, viewportMargin:Infinity, lineWrapping:true,
+  extraKeys:{ "Ctrl-Enter":()=>qRunner.run(), "Cmd-Enter":()=>qRunner.run(), Tab:cmObj=>cmObj.replaceSelection("    ","end") }
+});
+let saveTimer;
+cm.on("change", ()=>{
+  if(!cur) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>setProg(cur.id, {code: cm.getValue()}), 400);
+});
+
+/* ============ FİLTRELER & LİSTE ============ */
+let cur = null;
+let activeTopic = "Tümü";
+let searchTerm = "";
+
+function topicsInUse(){
+  const t = [...TOPICS];
+  store.custom.forEach(q=>{ if(!t.includes(q.topic)) t.push(q.topic); });
+  return t;
+}
+function renderChips(){
+  const wrap = $("#topicChips"); wrap.innerHTML = "";
+  ["Tümü", ...topicsInUse()].forEach(t=>{
+    const b = document.createElement("button");
+    b.className = "chip" + (t===activeTopic ? " on" : "");
+    b.textContent = t;
+    b.onclick = ()=>{ activeTopic = t; renderChips(); renderList(); };
+    wrap.appendChild(b);
+  });
+}
+function renderList(){
+  const list = $("#qlist"); list.innerHTML = "";
+  const term = searchTerm.trim().toLowerCase();
+  const qs = allQuestions().filter(q =>
+    (activeTopic==="Tümü" || q.topic===activeTopic) &&
+    (!term || q.title.toLowerCase().includes(term))
+  );
+  if(!qs.length){
+    const d = document.createElement("div");
+    d.className = "empty-list"; d.textContent = "Eşleşen soru yok.";
+    list.appendChild(d); return;
+  }
+  qs.forEach(q=>{
+    const item = document.createElement("div");
+    item.className = "qitem" + (cur && cur.id===q.id ? " sel" : "");
+    item.setAttribute("role","button"); item.tabIndex = 0;
+    const dot = document.createElement("span"); dot.className = "dot " + q.diff;
+    const name = document.createElement("span"); name.className = "qname"; name.textContent = q.title;
+    const tick = document.createElement("span"); tick.className = "tick"; tick.textContent = prog(q.id).solved ? "✓" : "";
+    item.append(dot, name);
+    if(q.customQ){ const m = document.createElement("span"); m.className="custom-mark"; m.textContent="özel"; item.append(m); }
+    item.append(tick);
+    const open = ()=>{ selectQ(q.id); $("#sidebar").classList.remove("open"); };
+    item.onclick = open;
+    item.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+    list.appendChild(item);
+  });
+}
+
+/* ============ İLERLEME KAYDI (register) ============ */
+function renderRegister(){
+  const qs = allQuestions();
+  const cells = $("#regCells"); cells.innerHTML = "";
+  let solved = 0;
+  qs.forEach(q=>{
+    const c = document.createElement("span");
+    c.className = "reg-cell" + (prog(q.id).solved ? " on" : "") + (cur && cur.id===q.id ? " cur" : "");
+    c.title = q.title + (prog(q.id).solved ? " ✓" : "");
+    if(prog(q.id).solved) solved++;
+    c.onclick = ()=>selectQ(q.id);
+    cells.appendChild(c);
+  });
+  $("#regCount").innerHTML = `<b>${solved}</b>/${qs.length} çözüldü`;
+}
+
+/* ============ SORU GÖRÜNÜMÜ ============ */
+function selectQ(id){
+  const q = allQuestions().find(x=>x.id===id);
+  if(!q) return;
+  if(cur) setProg(cur.id, {code: cm.getValue()});
+  cur = q;
+
+  $("#emptyMain").style.display = "none";
+  $("#qview").style.display = "block";
+
+  $("#qMeta").innerHTML =
+    `<span>${esc(q.topic)}</span><span class="sep">·</span><span class="d-${q.diff}">${q.diff.toUpperCase()}</span>` +
+    (q.customQ ? `<span class="sep">·</span><span>ÖZEL SORU</span>` : "");
+  $("#qTitle").textContent = q.title;
+  $("#qSolved").style.display = prog(q.id).solved ? "" : "none";
+
+  if(q.customQ){ $("#qDesc").innerHTML = "<p>" + esc(q.desc).replace(/\n/g,"<br>") + "</p>"; }
+  else{ $("#qDesc").innerHTML = q.desc; }
+
+  const hasTests = q.tests && q.tests.length;
+  if(hasTests){
+    $("#qExample").style.display = "";
+    $("#exIn").textContent = q.tests[0].stdin === "" ? "(girdi yok)" : q.tests[0].stdin;
+    $("#exOut").textContent = q.tests[0].expected;
+  } else { $("#qExample").style.display = "none"; }
+
+  if(q.hint){
+    $("#qHintWrap").style.display = "";
+    $("#qHintWrap").open = false;
+    if(q.customQ) $("#qHint").textContent = q.hint; else $("#qHint").innerHTML = q.hint;
+  } else { $("#qHintWrap").style.display = "none"; }
+
+  cm.setValue(prog(q.id).code ?? q.starter ?? STARTER);
+  cm.clearHistory();
+
+  $("#testResults").innerHTML = "";
+  $("#btnTest").disabled = !hasTests;
+  $("#btnTest").title = hasTests ? "" : "Bu soruda tanımlı test yok";
+  $("#btnDelete").style.display = q.customQ ? "" : "none";
+
+  renderList(); renderRegister();
+  $("#main").scrollTop = 0;
+  setTimeout(()=>cm.refresh(), 0);
+}
+
+/* ============ GODBOLT / Compiler Explorer (uzak derleyici — batch) ============ */
+/* Not: Eski Piston (emkc.org) API'si 15.02.2026'dan beri whitelist-only olduğu
+   için batch çalıştırma Godbolt'a taşındı. execute/interpret imzaları aynı. */
+const GODBOLT = "https://godbolt.org/api";
+const GODBOLT_FALLBACK = "g132"; // x86-64 gcc 13.2
+let gbCompiler = null;
+const GB_ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
+const gbText = lines => (lines || []).map(l => l.text).join("\n");
+async function resolveCompiler(){
+  if(gbCompiler) return gbCompiler;
+  try{
+    const r = await fetch(GODBOLT + "/compilers/c++?fields=id,name", {headers:{Accept:"application/json"}});
+    const list = await r.json();
+    const gccs = list.filter(c => /^x86-64 gcc \d+\.\d+$/.test(c.name));
+    if(gccs.length){
+      gccs.sort((a,b) => parseFloat(a.name.replace("x86-64 gcc ","")) - parseFloat(b.name.replace("x86-64 gcc ","")));
+      gbCompiler = gccs[gccs.length-1].id;
+    }
+  }catch(e){}
+  if(!gbCompiler) gbCompiler = GODBOLT_FALLBACK;
+  return gbCompiler;
+}
+async function execute(code, stdin){
+  const id = await resolveCompiler();
+  const r = await fetch(`${GODBOLT}/compiler/${id}/compile`, {
+    method:"POST", headers:{"Content-Type":"application/json", "Accept":"application/json"},
+    body: JSON.stringify({
+      source: code,
+      options:{
+        userArguments:"-O2 -std=c++17",
+        executeParameters:{args:[], stdin: stdin || ""},
+        compilerOptions:{executorRequest:true},
+        filters:{execute:true}
+      },
+      lang:"c++",
+      allowStoreCodeDebug:false
+    })
+  });
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+function interpret(res){
+  const build = res.buildResult || {};
+  if(build.code !== 0 && build.code !== undefined && build.code !== null){
+    const errTxt = (gbText(build.stderr) || gbText(build.stdout) || "Derleme hatası").replace(GB_ANSI, "");
+    return {ok:false, kind:"compile", text: errTxt};
+  }
+  if(res.timedOut) return {ok:false, kind:"timeout", text:"Zaman aşımı — sonsuz döngü olabilir mi?"};
+  const out = gbText(res.stdout);
+  if(res.code !== 0 && (res.stderr||[]).length)
+    return {ok:false, kind:"runtime", text: out + (out?"\n":"") + gbText(res.stderr).replace(GB_ANSI, "")};
+  return {ok:true, kind:"ok", text: out};
+}
+
+/* ============ TESTLER ============ */
+// Godbolt batch derlemesi hâlâ testleri değerlendirmek için kullanılıyor.
+let busy = false;
+async function runTests(){
+  if(busy || !cur || !cur.tests || !cur.tests.length) return;
+  const code = cm.getValue().trim();
+  if(!code){ toast("Önce kod yaz"); return; }
+  busy = true;
+  const btn = $("#btnTest");
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spin" style="border-color:#53dae244;border-top-color:var(--acc)"></span>Testler…'; btn.disabled = true;
+
+  const wrap = $("#testResults"); wrap.innerHTML = "";
+  const rows = cur.tests.map((t,i)=>{
+    const r = document.createElement("div");
+    r.className = "trow wait";
+    r.innerHTML = `<span class="t-icon">○</span><div class="t-body"><div class="t-title">Test ${i+1}</div><div class="t-detail">bekliyor…</div></div>`;
+    wrap.appendChild(r); return r;
+  });
+
+  let allPass = true;
+  try{
+    for(let i=0;i<cur.tests.length;i++){
+      const t = cur.tests[i], row = rows[i];
+      row.querySelector(".t-detail").textContent = "çalışıyor…";
+      const res = interpret(await execute(cm.getValue(), t.stdin));
+      const detail = row.querySelector(".t-detail");
+      if(res.ok && norm(res.text) === norm(t.expected)){
+        row.className = "trow pass";
+        row.querySelector(".t-icon").textContent = "✓";
+        detail.innerHTML = "girdi: <b>" + esc(t.stdin===""?"(yok)":t.stdin) + "</b> → çıktı doğru";
+      } else {
+        allPass = false;
+        row.className = "trow fail";
+        row.querySelector(".t-icon").textContent = "✗";
+        if(!res.ok){
+          detail.innerHTML = "<b>" + (res.kind==="compile"?"Derleme hatası:":"Hata:") + "</b>\n" + esc(res.text.slice(0,600));
+        } else {
+          detail.innerHTML = "girdi: <b>" + esc(t.stdin===""?"(yok)":t.stdin) + "</b>\nbeklenen: <b>" + esc(t.expected) + "</b>\nsenin çıktın: <b>" + esc(res.text.trim()===""?"(boş)":res.text) + "</b>";
+        }
+        if(res.kind === "compile") { for(let j=i+1;j<rows.length;j++){ rows[j].className="trow fail"; rows[j].querySelector(".t-icon").textContent="✗"; rows[j].querySelector(".t-detail").textContent="derleme hatası nedeniyle atlandı"; } break; }
+      }
+      if(i < cur.tests.length-1) await new Promise(r=>setTimeout(r, 350));
+    }
+  }catch(e){
+    allPass = false;
+    toast("Derleyiciye ulaşılamadı — internet bağlantını kontrol et");
+  }
+
+  if(allPass){
+    const banner = document.createElement("div");
+    banner.className = "all-pass";
+    banner.textContent = "Tüm testler geçti — soru çözüldü ✓";
+    wrap.prepend(banner);
+    setProg(cur.id, {solved:true, code: cm.getValue()});
+    $("#qSolved").style.display = "";
+    renderList(); renderRegister();
+  }
+  btn.innerHTML = orig; btn.disabled = false; busy = false;
+}
+
+/* ============ SORU EKLEME MODALI ============ */
+function fillTopicSelect(){
+  const sel = $("#mTopic"); sel.innerHTML = "";
+  topicsInUse().forEach(t=>{ const o=document.createElement("option"); o.value=t; o.textContent=t; sel.appendChild(o); });
+  const o=document.createElement("option"); o.value="Özel"; o.textContent="Özel"; sel.appendChild(o);
+}
+function addTestRow(stdin="", expected=""){
+  const d = document.createElement("div");
+  d.className = "tcase";
+  d.innerHTML = `<textarea placeholder="stdin" spellcheck="false">${esc(stdin)}</textarea><textarea placeholder="beklenen çıktı" spellcheck="false">${esc(expected)}</textarea><button class="del-t" title="Testi sil">×</button>`;
+  d.querySelector(".del-t").onclick = ()=>d.remove();
+  $("#mTests").appendChild(d);
+}
+$("#btnAdd").onclick = ()=>{
+  fillTopicSelect();
+  $("#mTitle").value=""; $("#mDesc").value=""; $("#mHint").value="";
+  $("#mStarter").value = STARTER; $("#mDiff").value="orta";
+  $("#mTests").innerHTML=""; addTestRow();
+  $("#modalOverlay").classList.add("open");
+  $("#mTitle").focus();
+};
+$("#mCancel").onclick = ()=>$("#modalOverlay").classList.remove("open");
+$("#modalOverlay").onclick = e=>{ if(e.target===$("#modalOverlay")) $("#modalOverlay").classList.remove("open"); };
+$("#mAddTest").onclick = ()=>addTestRow();
+$("#mSave").onclick = ()=>{
+  const title = $("#mTitle").value.trim();
+  if(!title){ toast("Başlık gerekli"); return; }
+  const tests = [...$("#mTests").querySelectorAll(".tcase")].map(tc=>{
+    const [a,b] = tc.querySelectorAll("textarea");
+    return {stdin:a.value, expected:b.value};
+  }).filter(t=>t.expected.trim()!=="" || t.stdin.trim()!=="");
+  store.custom.push({
+    id:"c"+Date.now(), customQ:true,
+    title, topic:$("#mTopic").value, diff:$("#mDiff").value,
+    desc:$("#mDesc").value.trim() || "Açıklama eklenmedi.",
+    starter:$("#mStarter").value || STARTER,
+    hint:$("#mHint").value.trim(),
+    tests
+  });
+  saveStore();
+  $("#modalOverlay").classList.remove("open");
+  renderChips(); renderList(); renderRegister();
+  toast("Soru eklendi");
+};
+$("#btnDelete").onclick = ()=>{
+  if(!cur || !cur.customQ) return;
+  if(!confirm(`"${cur.title}" silinsin mi? Bu işlem geri alınamaz.`)) return;
+  store.custom = store.custom.filter(q=>q.id!==cur.id);
+  delete store.progress[cur.id];
+  saveStore();
+  cur = null;
+  $("#qview").style.display="none"; $("#emptyMain").style.display="flex";
+  renderChips(); renderList(); renderRegister();
+  toast("Soru silindi");
+};
+
+/* ============ SIFIRLA ============ */
+$("#btnReset").onclick = ()=>{
+  if(!cur) return;
+  if(!confirm("Kod başlangıç haline döndürülsün mü?")) return;
+  cm.setValue(cur.starter || STARTER);
+  setProg(cur.id, {code: cm.getValue()});
+};
+
+/* ============ DIŞA / İÇE AKTAR ============ */
+$("#btnExport").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(store, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cpp-pratik-yedek.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+$("#btnImport").onclick = ()=>$("#importFile").click();
+$("#importFile").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(typeof data !== "object" || (!data.progress && !data.custom)) throw 0;
+      Object.assign(store.progress, data.progress || {});
+      const ids = new Set(store.custom.map(q=>q.id));
+      (data.custom || []).forEach(q=>{ if(q && q.id && !ids.has(q.id)) store.custom.push(q); });
+      saveStore();
+      renderChips(); renderList(); renderRegister();
+      if(cur) selectQ(cur.id);
+      toast("Yedek yüklendi");
+    }catch(err){ toast("Geçersiz yedek dosyası"); }
+  };
+  reader.readAsText(f);
+  e.target.value = "";
+};
+
+/* ============ ARAMA & MOBİL ============ */
+$("#search").oninput = e=>{ searchTerm = e.target.value; renderList(); };
+$("#sideToggle").onclick = ()=>$("#sidebar").classList.toggle("open");
+$("#btnTest").onclick = ()=>runTests();
+
+/* ============ BAŞLAT ============ */
+renderChips(); renderList(); renderRegister();
+const firstUnsolved = allQuestions().find(q=>!prog(q.id).solved) || allQuestions()[0];
+if(firstUnsolved) selectQ(firstUnsolved.id);
+resolveCompiler();
+</script>
+<script>
+/* ============ CANLI MOD (WebSocket + PTY backend — xterm.js) ============ */
+/* Backend adresi. Boş bırakılırsa "Canlı Çalıştır" pasif kalır.
+   Yerel test : "ws://localhost:8080"
+   Üretim     : "wss://cpp-backend.example.com" (GitHub Pages https olduğundan wss şart) */
+const BACKEND_WS_URL = "ws://localhost:8080";
+
+/* Tek bir canlı-çalıştırma motoru. Hem "Soru Çöz" hem "Compiler" modu için ayrı
+   birer örnek oluşturulur; her biri kendi editöründen kod alır, kendi xterm
+   terminalinde çalışır ve kendi WebSocket'ini yönetir. */
+function makeLiveRunner(opts){
+  const { getCode, termSel, wrapSel, btnRun, btnStop, statusSel, noteSel } = opts;
+  let ws = null, term = null, fit = null, running = false;
+  const runLabel = btnRun.innerHTML;
+
+  if(!BACKEND_WS_URL){
+    btnRun.disabled = true;
+    btnRun.title = "Canlı mod için backend adresi tanımlı değil — index.html içindeki BACKEND_WS_URL sabitini doldur.";
+    if(noteSel) $(noteSel).style.display = "";
+  }
+
+  const setStatus = html => { if(statusSel) $(statusSel).innerHTML = html; };
+  function setUI(isRun, label){
+    running = isRun;
+    btnRun.disabled = isRun || !BACKEND_WS_URL;
+    btnRun.innerHTML = label || runLabel;
+    btnStop.style.display = isRun ? "" : "none";
+  }
+
+  function ensureTerm(){
+    if(term) return true;
+    if(typeof Terminal === "undefined" || typeof FitAddon === "undefined"){
+      toast("xterm.js yüklenemedi — internet bağlantını kontrol et");
+      return false;
+    }
+    term = new Terminal({
+      cursorBlink:true, fontFamily:"'JetBrains Mono', monospace", fontSize:13,
+      theme:{ background:"#0A0F1C", foreground:"#E9EEF8", cursor:"#53DAE2", selectionBackground:"#24406488" }
+    });
+    fit = new FitAddon.FitAddon();
+    term.loadAddon(fit);
+    term.open($(termSel));
+    fit.fit();
+    window.addEventListener("resize", ()=>{ if(fit) try{ fit.fit(); }catch(e){} });
+    // Kullanıcının yazdığı her şey (Enter, Ctrl+C dahil) doğrudan sürecin PTY'sine gider.
+    term.onData(d=>{ if(running && ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:"input", data:d})); });
+    return true;
+  }
+
+  function handle(m){
+    switch(m.type){
+      case "status":
+        if(m.stage === "compiling"){
+          setStatus("derleniyor…");
+          setUI(true, '<span class="spin" style="border-color:#53dae244;border-top-color:var(--acc)"></span>Derleniyor…');
+        } else if(m.stage === "running"){
+          setStatus('<span class="status-ok">çalışıyor — terminale yazabilirsin</span>');
+          setUI(true, '<span class="spin" style="border-color:#53dae244;border-top-color:var(--acc)"></span>Çalışıyor');
+          term.focus();
+        }
+        break;
+      case "stdout": term.write(m.data); break;
+      case "compile_error":
+        term.write("\x1b[31m" + String(m.data).replace(/\r?\n/g, "\r\n") + "\x1b[0m\r\n");
+        setStatus('<span class="status-err">derleme hatası</span>');
+        setUI(false);
+        break;
+      case "exit":
+        term.write("\r\n\x1b[90m[program bitti — çıkış kodu: " + m.code + "]\x1b[0m\r\n");
+        setStatus(m.code === 0 ? '<span class="status-ok">exit 0</span>' : '<span class="status-err">exit ' + esc(String(m.code)) + "</span>");
+        setUI(false);
+        break;
+      case "error":
+        term.write("\r\n\x1b[31m[" + String(m.message).replace(/\r?\n/g," ") + "]\x1b[0m\r\n");
+        break;
+    }
+  }
+
+  function run(){
+    if(!BACKEND_WS_URL || running) return;
+    if(!getCode().trim()){ toast("Önce kod yaz"); return; }
+    $(wrapSel).style.display = "";
+    if(!ensureTerm()) return;
+    fit.fit();
+    term.reset();
+    setUI(true, '<span class="spin" style="border-color:#53dae244;border-top-color:var(--acc)"></span>Bağlanıyor…');
+    setStatus("bağlanıyor…");
+    const doRun = ()=>ws.send(JSON.stringify({type:"run", code:getCode(), cols:term.cols, rows:term.rows}));
+    if(ws && ws.readyState === WebSocket.OPEN){ doRun(); return; }
+    ws = new WebSocket(BACKEND_WS_URL);
+    ws.onopen = doRun;
+    ws.onmessage = ev=>{ let m; try{ m = JSON.parse(ev.data); }catch(e){ return; } handle(m); };
+    ws.onclose = ()=>{
+      if(running){
+        term.write("\r\n\x1b[31m[bağlantı kesildi]\x1b[0m\r\n");
+        setStatus('<span class="status-err">bağlantı kesildi</span>');
+        setUI(false);
+      }
+      ws = null;
+    };
+  }
+  function stop(){ if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:"kill"})); }
+
+  btnRun.onclick = run;
+  btnStop.onclick = stop;
+  return { run, stop, refit:()=>{ if(fit) try{ fit.fit(); }catch(e){} }, get running(){ return running; } };
+}
+
+/* --- Soru Çöz modu canlı çalıştırıcısı --- */
+const qRunner = makeLiveRunner({
+  getCode:()=>cm.getValue(), termSel:"#term", wrapSel:"#termWrap",
+  btnRun:$("#btnLive"), btnStop:$("#btnLiveStop"), statusSel:"#termStatus", noteSel:"#liveNote"
+});
+
+/* --- Compiler modu: kendi editörü + kendi canlı çalıştırıcısı --- */
+const COMPILER_STARTER = "";
+const cmCompiler = CodeMirror.fromTextArea($("#cEditor"), {
+  mode:"text/x-c++src", theme:"pratik", lineNumbers:true, indentUnit:4,
+  matchBrackets:true, autoCloseBrackets:true, viewportMargin:Infinity, lineWrapping:true,
+  extraKeys:{ "Ctrl-Enter":()=>cRunner.run(), "Cmd-Enter":()=>cRunner.run(), Tab:o=>o.replaceSelection("    ","end") }
+});
+cmCompiler.setValue(store.compilerCode ?? COMPILER_STARTER);
+let cSaveTimer;
+cmCompiler.on("change", ()=>{ clearTimeout(cSaveTimer); cSaveTimer = setTimeout(()=>{ store.compilerCode = cmCompiler.getValue(); saveStore(); }, 400); });
+
+const cRunner = makeLiveRunner({
+  getCode:()=>cmCompiler.getValue(), termSel:"#cTerm", wrapSel:"#cTermWrap",
+  btnRun:$("#cBtnRun"), btnStop:$("#cBtnStop"), statusSel:"#cTermStatus", noteSel:"#cLiveNote"
+});
+$("#cBtnReset").onclick = ()=>{
+  if(!confirm("Kod başlangıç haline döndürülsün mü?")) return;
+  cmCompiler.setValue(COMPILER_STARTER);
+  store.compilerCode = cmCompiler.getValue(); saveStore();
+};
+
+/* --- Mod geçişi (Soru Çöz / Compiler) --- */
+let mode = "question";
+function switchMode(m){
+  if(m === mode) return;
+  if(mode === "question" && qRunner.running) qRunner.stop();
+  if(mode === "compiler" && cRunner.running) cRunner.stop();
+  mode = m;
+  const isQ = m === "question";
+  $("#modeQuestion").classList.toggle("on", isQ);
+  $("#modeCompiler").classList.toggle("on", !isQ);
+  $("#sidebar").style.display = isQ ? "" : "none";
+  $("#register").style.display = isQ ? "" : "none";
+  $("#btnAdd").style.display = isQ ? "" : "none";
+  $("#compilerView").style.display = isQ ? "none" : "block";
+  if(isQ){
+    $("#qview").style.display = cur ? "block" : "none";
+    $("#emptyMain").style.display = cur ? "none" : "flex";
+    setTimeout(()=>cm.refresh(), 0);
+  } else {
+    $("#qview").style.display = "none";
+    $("#emptyMain").style.display = "none";
+    setTimeout(()=>{ cmCompiler.refresh(); cRunner.refit(); }, 0);
+  }
+  $("#sidebar").classList.remove("open");
+}
+$("#modeQuestion").onclick = ()=>switchMode("question");
+$("#modeCompiler").onclick = ()=>switchMode("compiler");
+
+// Varsayılan mod: sayfa açılınca Compiler gelsin.
+switchMode("compiler");
+</script>
+</body>
+</html>
