@@ -199,10 +199,6 @@ details.hint .hint-body code{font-family:var(--mono);font-size:.88em;color:var(-
 .cm-s-pratik .cm-meta{color:#C792EA}
 .cm-s-pratik .cm-atom{color:#FFB454}
 .CodeMirror-matchingbracket{color:var(--acc)!important;text-decoration:underline}
-/* Otomatik yükseklik + satır kaydırma ile iç kaydırma hiç gerekmiyor —
-   CodeMirror'un native kaydırma çubuğu hilesini kapatıp çirkin barı yok et. */
-.CodeMirror-hscrollbar,.CodeMirror-vscrollbar,.CodeMirror-scrollbar-filler,.CodeMirror-gutter-filler{display:none!important}
-.CodeMirror-scroll{overflow:hidden!important;margin:0!important;padding-bottom:0!important}
 
 .run-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .run-row .spacer{flex:1}
@@ -541,7 +537,7 @@ function toast(msg){
 /* ============ EDİTÖR ============ */
 const cm = CodeMirror.fromTextArea($("#editor"), {
   mode:"text/x-c++src", theme:"pratik", lineNumbers:true, indentUnit:4,
-  matchBrackets:true, autoCloseBrackets:true, viewportMargin:Infinity, lineWrapping:true,
+  matchBrackets:true, autoCloseBrackets:true, viewportMargin:Infinity, lineWrapping:true, scrollbarStyle:"null",
   extraKeys:{ "Ctrl-Enter":()=>qRunner.run(), "Cmd-Enter":()=>qRunner.run(), Tab:cmObj=>cmObj.replaceSelection("    ","end") }
 });
 let saveTimer;
@@ -993,7 +989,7 @@ const qRunner = makeLiveRunner({
 const COMPILER_STARTER = "";
 const cmCompiler = CodeMirror.fromTextArea($("#cEditor"), {
   mode:"text/x-c++src", theme:"pratik", lineNumbers:true, indentUnit:4,
-  matchBrackets:true, autoCloseBrackets:true, viewportMargin:Infinity, lineWrapping:true,
+  matchBrackets:true, autoCloseBrackets:true, viewportMargin:Infinity, lineWrapping:true, scrollbarStyle:"null",
   extraKeys:{ "Ctrl-Enter":()=>cRunner.run(), "Cmd-Enter":()=>cRunner.run(), Tab:o=>o.replaceSelection("    ","end") }
 });
 cmCompiler.setValue(store.compilerCode ?? COMPILER_STARTER);
